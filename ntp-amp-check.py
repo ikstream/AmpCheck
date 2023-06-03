@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 #    ntp-amp-check - ntp amplification checker
-#    Copyright (C) 2023  ikstream <stefan[dot]venz[at]protonamil.com>
+#    Copyright (C) 2023  ikstream <stefan[dot]venz[at]protonmail.com>
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
