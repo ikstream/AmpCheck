@@ -10,13 +10,14 @@ The script doesn't require any external libraries.
 ## How to use
 ```sh
 $ python ntp-amp-check.py -h
-usage: ntp-amp-check.py [-h] -t TARGET [-p PORT] [--verbose] [-d]
+usage: ntp-amp-check.py [-h] -t TARGET [-p PORT] [--verbose] [-d] [--timeout TIMEOUT]
 
 options:
   -h, --help            show this help message and exit
   -p PORT, --port PORT  Port to test
   --verbose             Print verbose information to stdout
   -d, --debug           Print request and response bytes to output
+  --timeout TIMEOUT     Time in seconds to wait for response before sending next request. Default 2
 
 Required arguments:
   -t TARGET, --target TARGET

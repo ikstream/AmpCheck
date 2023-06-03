@@ -77,7 +77,7 @@ MODE_7_MSG_IDS = [
 ]
 
 
-def send_mode_6_probe(host: str, port: int, version: bytes):
+def send_mode_6_probe(host: str, port: int, version: bytes, timeout):
     """
     Send mode 6 requests to server
 
@@ -95,9 +95,11 @@ def send_mode_6_probe(host: str, port: int, version: bytes):
     0x0e, 0x16, 0x1e, 0x26
 
     Arguemnts:
-        host(str): targeted ntp server (single ip or hostname)
-        port(int): targeted port on targeted server (default 123)
+        host(str):    targeted ntp server (single ip or hostname)
+        port(int):    targeted port on targeted server (default 123)
         version(str): hexadecimal value for mode and ntp version (first 8 byte)
+        timeout(int): time in seconds to wait for response before sending next
+                        request (default 2)
     """
 
     requests = {}
@@ -106,8 +108,9 @@ def send_mode_6_probe(host: str, port: int, version: bytes):
     padding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
     msg_id = 'control'
 
+    if VERBOSE: print(f"Timeout: {timeout}")
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as serversock:
-        serversock.settimeout(3)
+        serversock.settimeout(timeout)
 
         for control_message in range(0,32):
             item ={}
@@ -149,7 +152,7 @@ def send_mode_6_probe(host: str, port: int, version: bytes):
     return requests
 
 
-def send_mode_7_probe(host: str, port: int, version: str):
+def send_mode_7_probe(host: str, port: int, version: str, timeout: int):
     """
     Send mode 7 requests to server
 
@@ -166,9 +169,11 @@ def send_mode_7_probe(host: str, port: int, version: str):
     0x0f, 0x17, 0x1f, 0x27
 
     Arguemnts:
-        host(str): targeted ntp server (single ip or hostname)
-        port(int): targeted port on targeted server (default 123)
+        host(str):    targeted ntp server (single ip or hostname)
+        port(int):    targeted port on targeted server (default 123)
         version(str): hexadecimal value for mode and ntp version (first 8 byte)
+        timeout(int): time in seconds to wait for response before sending next
+                        request (default 2)
     """
 
     requests = {}
@@ -176,8 +181,9 @@ def send_mode_7_probe(host: str, port: int, version: str):
     mode7 = 0x07
     padding = b'\x00\x00\x00\x00'
 
+    if VERBOSE: print(f"Timeout: {timeout}")
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as serversock:
-        serversock.settimeout(3)
+        serversock.settimeout(timeout)
 
         for implementation in range(2,4):
             for command_value in range(0,46):
@@ -227,8 +233,6 @@ def run_test():
     Parse arguments and start sending requests accordingly
     """
     ntp_version = [ 0x08, 0x10, 0x18, 0x20 ]
-    ntp_version_mode_6  = [ b'\x0e', b'\x16', b'\x1e', b'\x26' ]
-    ntp_version_mode_7  = [ b'\x0f', b'\x17', b'\x1f', b'\x27' ]
     global VERBOSE
     global DEBUG
     data = {}
@@ -253,6 +257,10 @@ def run_test():
                         '--debug',
                         action='store_true',
                         help='Print request and response bytes to output')
+    parser.add_argument('--timeout',
+                        type=int,
+                        default=2,
+                        help='Time in seconds to wait for response before sending next request. Default 2')
 
     args = parser.parse_args()
 
@@ -267,10 +275,16 @@ def run_test():
             version_data = {}
             requests = []
             if VERBOSE: print(f"Sending ntp version {index + 1} mode 6 requests to {args.target}:{args.port}")
-            requests.append(send_mode_6_probe(args.target, args.port, version))
+            requests.append(send_mode_6_probe(args.target,
+                                              args.port,
+                                              version,
+                                              args.timeout))
 
             if VERBOSE: print(f"Sending ntp version {index + 1} mode 7 requests to {args.target}:{args.port}")
-            requests.append(send_mode_7_probe(args.target, args.port, version))
+            requests.append(send_mode_7_probe(args.target,
+                                              args.port,
+                                              version,
+                                              args.timeout))
             version_data['version'] = index + 1
             version_data['requests'] = requests
             versions.append(version_data)
