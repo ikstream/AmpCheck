@@ -16,12 +16,19 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""
+Check ntp server configuration if they can be used for amplificaiton attacks
+"""
+
 import binascii
 import socket
 import sys
 import argparse
 import json
 
+
+VERBOSE = ''
+DEBUG = ''
 # NTP Version and mode
 # The first byte consists of 2 Bit Leap Indicaor (00) 3 Bit Version (000 - 100) and 3 Bit mode (011 or 111)
 # Leap Indicator needs to be set to either 1 (01 - Add a leap second) or 3 (11 -
@@ -106,44 +113,61 @@ def send_mode_6_probe(host: str, port: int, version: bytes, timeout):
     items = []
     mode6 = 0x06
     padding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-    msg_id = 'control'
 
-    if VERBOSE: print(f"Timeout: {timeout}")
+    if VERBOSE:
+        print(f"Timeout: {timeout}")
+
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as serversock:
         serversock.settimeout(timeout)
 
         for control_message in range(0,32):
             item ={}
-            item['response'] = ''
-            item['response_length'] = ''
             item['amplification_factor'] = ''
             item['implementation'] = ''
             item['command_id'] = control_message
             item['command_name'] = 'control'
+
+            if DEBUG:
+                item['request'] = ''
+                item['response'] = ''
+
             request = binascii.a2b_hex(hex(version | mode6)[2:].zfill(2)) + \
                      binascii.a2b_hex(hex(control_message)[2:].zfill(2))  + \
                      padding
-            if VERBOSE: print(f"Request {request}")
+
+            if VERBOSE:
+                print(f"Request {request}")
+
             serversock.sendto(request, (host, port))
-            if DEBUG: item['request'] = request.hex()
+
+            if DEBUG:
+                item['request'] = request.hex()
+
             item['request_length'] = len(request)
+            item['response_length'] = ''
 
             try:
                 # Receive the response packet from the server
                 ntp_response, _ = serversock.recvfrom(8192)
-                if DEBUG: item['response'] = ntp_response.hex()
+
+                if DEBUG:
+                    item['response'] = ntp_response.hex()
+
                 item['response_length'] = len(ntp_response)
 
                 # Calculate the amplification factor based on the size of the response packet
                 if ntp_response:
                     amplification_factor = len(ntp_response) / len(request)
-                    if VERBOSE: print(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
+
+                    if VERBOSE:
+                        print(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
+
                     item['amplification_factor'] = amplification_factor
                 else:
                     continue
 
-            except (socket.timeout, socket.error) as e:
-                print(f"Response error: {e}")
+            except (socket.timeout, socket.error) as exc_msg:
+                print(f"Response error: {exc_msg}")
 
             items.append(item)
 
@@ -181,44 +205,62 @@ def send_mode_7_probe(host: str, port: int, version: str, timeout: int):
     mode7 = 0x07
     padding = b'\x00\x00\x00\x00'
 
-    if VERBOSE: print(f"Timeout: {timeout}")
+    if VERBOSE:
+        print(f"Timeout: {timeout}")
+
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as serversock:
         serversock.settimeout(timeout)
 
         for implementation in range(2,4):
             for command_value in range(0,46):
                 item ={}
-                item['response'] = ''
-                item['response_length'] = ''
                 item['amplification_factor'] = ''
                 item['implementation'] = implementation
                 item['command_id'] = command_value
                 item['command_name'] = MODE_7_MSG_IDS[command_value]
+
+                if DEBUG:
+                    item['request'] = ''
+                    item['response'] = ''
+
                 request = binascii.a2b_hex(hex(version | mode7)[2:].zfill(2)) + \
                          b'\x00' + \
                          binascii.a2b_hex(hex(implementation)[2:].zfill(2))  + \
                          binascii.a2b_hex(hex(command_value)[2:].zfill(2)) + \
                          padding
-                if VERBOSE: print(f"Request: {request}")
+
+                if VERBOSE:
+                    print(f"Request: {request}")
+
                 serversock.sendto(request, (host, port))
-                if DEBUG: item['request'] = request.hex()
+
+                if DEBUG:
+                    item['request'] = request.hex()
+
                 item['request_length'] = len(request)
+                item['response_length'] = ''
 
                 try:
                     # Receive the response packet from the server
                     ntp_response, _ = serversock.recvfrom(8192)
-                    if DEBUG: item['response'] = ntp_response.hex()
+
+                    if DEBUG:
+                        item['response'] = ntp_response.hex()
+
                     item['response_length'] = len(ntp_response)
 
                     # Calculate the amplification factor based on the size of the response packet
                     if ntp_response:
                         amplification_factor = len(ntp_response) / len(request)
                         item['amplification_factor'] = amplification_factor
-                        if VERBOSE: print(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
+
+                        if VERBOSE:
+                            print(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
+
                     else:
                         continue
-                except socket.timeout as e:
-                    print(f"Response error: {e}")
+                except socket.timeout as exc_msg:
+                    print(f"Response error: {exc_msg}")
                     #print("Timed out while waiting for response from server")
 
                 items.append(item)
@@ -274,13 +316,18 @@ def run_test():
         for index, version in enumerate(ntp_version):
             version_data = {}
             requests = []
-            if VERBOSE: print(f"Sending ntp version {index + 1} mode 6 requests to {args.target}:{args.port}")
+
+            if VERBOSE:
+                print(f"Sending ntp version {index + 1} mode 6 requests to {args.target}:{args.port}")
+
             requests.append(send_mode_6_probe(args.target,
                                               args.port,
                                               version,
                                               args.timeout))
 
-            if VERBOSE: print(f"Sending ntp version {index + 1} mode 7 requests to {args.target}:{args.port}")
+            if VERBOSE:
+                print(f"Sending ntp version {index + 1} mode 7 requests to {args.target}:{args.port}")
+
             requests.append(send_mode_7_probe(args.target,
                                               args.port,
                                               version,
