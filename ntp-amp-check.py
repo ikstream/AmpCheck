@@ -17,7 +17,7 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Check ntp server configuration if they can be used for amplificaiton attacks
+Check ntp server configuration if they can be used for amplification attacks
 """
 
 import binascii
