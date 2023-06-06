@@ -39,3 +39,55 @@ For a ntp server listening on port 10123, the port has to be provided as well
 python ntp-amp-check.py -t ntp.example.com -p 10123
 ```
 
+## Packet structure
+
+NTP control Message Format
+from [1]
+```
+|       0       |       1       |       2       |       3       |
+|7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|LI |  VN |Mode |R|E|M| opcode  |       Sequence Number         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|            Status             |       Association ID          |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+LI: leap indicator: 0
+VN: version number: 1...4
+Mode: 6
+R: response bit (0 - request; 1 - response)
+E: error bit (0 - normal response; 1 - error response)
+M: more bit
+opcode: command ID: 0...31
+
+
+NTP Mode 7 Message Format
+from [2]
+```
+|       0       |       1       |       2       |       3       |
+|7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|7 6 5 4 3 2 1 0|
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|R|M| VN  |Mode |A|  Sequence   |Implementation |   Req Code    |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  Err  | Number of data items  |  MBZ  |   Size of data item   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+R: response bit
+M: more bit
+VN: version number: 1...4
+Mode: 7
+A: authenticated bit: 0
+Sequence: 0
+Implementation: 2...3
+Req Code: specifies the operation: 0...45
+
+rest: 0
+
+## Resources
+
+[1](https://datatracker.ietf.org/doc/html/rfc9327#section-2
+)
+[2](https://blog.qualys.com/vulnerabilities-threat-research/2014/01/21/how-qualysguard-detects-vulnerability-to-ntp-amplification-attacks
+)
