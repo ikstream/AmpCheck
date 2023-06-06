@@ -25,6 +25,7 @@ import socket
 import sys
 import argparse
 import json
+import logging as log
 
 
 MODE_7_MSG_IDS = [
@@ -86,7 +87,6 @@ class Arguments():
         self.port = 123
         self.timeout = 2
         self.debug = ''
-        self.verbose = ''
 
 
 def send_mode_6_probe(args: Arguments, version: bytes):
@@ -117,8 +117,7 @@ def send_mode_6_probe(args: Arguments, version: bytes):
     mode6 = 0x06
     padding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
-    if args.verbose:
-        print(f"Timeout: {args.timeout}")
+    log.info(f"Timeout: {args.timeout}")
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as serversock:
         serversock.settimeout(args.timeout)
@@ -137,9 +136,7 @@ def send_mode_6_probe(args: Arguments, version: bytes):
             request = binascii.a2b_hex(hex(version | mode6)[2:].zfill(2)) + \
                      binascii.a2b_hex(hex(control_message)[2:].zfill(2))  + \
                      padding
-
-            if args.verbose:
-                print(f"Request {request}")
+            log.info(f"Request {request}")
 
             serversock.sendto(request, (args.host, args.port))
 
@@ -161,16 +158,13 @@ def send_mode_6_probe(args: Arguments, version: bytes):
                 # Calculate the amplification factor based on the size of the response packet
                 if ntp_response:
                     amplification_factor = len(ntp_response) / len(request)
-
-                    if args.verbose:
-                        print(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
-
+                    log.info(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
                     item['amplification_factor'] = amplification_factor
                 else:
                     continue
 
             except (socket.timeout, socket.error) as exc_msg:
-                print(f"Response error: {exc_msg}")
+                log.error(f"Response error: {exc_msg}")
 
             items.append(item)
 
@@ -202,8 +196,7 @@ def send_mode_7_probe(args: Arguments, version: str):
     mode7 = 0x07
     padding = b'\x00\x00\x00\x00'
 
-    if args.verbose:
-        print(f"Timeout: {args.timeout}")
+    log.info(f"Timeout: {args.timeout}")
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as serversock:
         serversock.settimeout(args.timeout)
@@ -226,8 +219,7 @@ def send_mode_7_probe(args: Arguments, version: str):
                          binascii.a2b_hex(hex(command_value)[2:].zfill(2)) + \
                          padding
 
-                if args.verbose:
-                    print(f"Request: {request}")
+                log.info(f"Request: {request}")
 
                 serversock.sendto(request, (args.host, args.port))
 
@@ -250,15 +242,11 @@ def send_mode_7_probe(args: Arguments, version: str):
                     if ntp_response:
                         amplification_factor = len(ntp_response) / len(request)
                         item['amplification_factor'] = amplification_factor
-
-                        if args.verbose:
-                            print(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
-
+                        log.info(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
                     else:
                         continue
                 except socket.timeout as exc_msg:
-                    print(f"Response error: {exc_msg}")
-                    #print("Timed out while waiting for response from server")
+                    log.error(f"Response error: {exc_msg}")
 
                 items.append(item)
 
@@ -303,7 +291,6 @@ def run_test():
 
     arguments = Arguments()
 
-    arguments.verbose = args.verbose
     arguments.debug = args.debug
     arguments.host = args.target
     arguments.port = args.port
@@ -311,20 +298,18 @@ def run_test():
     data['host'] = args.target
     data['port'] = args.port
 
+    if args.verbose:
+        log.basicConfig(level=log.INFO)
+
     try:
 
         for index, version in enumerate(ntp_version):
             version_data = {}
             requests = []
 
-            if args.verbose:
-                print(f"Sending ntp version {index + 1} mode 6 requests to {args.target}:{args.port}")
-
+            log.info(f"Sending ntp version {index + 1} mode 6 requests to {args.target}:{args.port}")
             requests.append(send_mode_6_probe(arguments, version))
-
-            if args.verbose:
-                print(f"Sending ntp version {index + 1} mode 7 requests to {args.target}:{args.port}")
-
+            log.info(f"Sending ntp version {index + 1} mode 7 requests to {args.target}:{args.port}")
             requests.append(send_mode_7_probe(arguments, version))
             version_data['version'] = index + 1
             version_data['requests'] = requests
