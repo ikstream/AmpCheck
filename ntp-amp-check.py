@@ -27,13 +27,6 @@ import argparse
 import json
 
 
-VERBOSE = ''
-DEBUG = ''
-# NTP Version and mode
-# The first byte consists of 2 Bit Leap Indicaor (00) 3 Bit Version (000 - 100) and 3 Bit mode (011 or 111)
-# Leap Indicator needs to be set to either 1 (01 - Add a leap second) or 3 (11 -
-# delete a leap second). Here it is set to 0.
-# Therefore the order in the list is ntp version 1 to 4
 MODE_7_MSG_IDS = [
     "PEER_LIST",
     "PEER_LIST_SUM",
@@ -83,8 +76,20 @@ MODE_7_MSG_IDS = [
     "IF_RELOAD",
 ]
 
+class Arguments():
+    """
+    Class to keep command line arguments in a single place
+    """
 
-def send_mode_6_probe(host: str, port: int, version: bytes, timeout):
+    def __init__(self):
+        self.host = ''
+        self.port = 123
+        self.timeout = 2
+        self.debug = ''
+        self.verbose = ''
+
+
+def send_mode_6_probe(args: Arguments, version: bytes):
     """
     Send mode 6 requests to server
 
@@ -102,11 +107,9 @@ def send_mode_6_probe(host: str, port: int, version: bytes, timeout):
     0x0e, 0x16, 0x1e, 0x26
 
     Arguemnts:
-        host(str):    targeted ntp server (single ip or hostname)
-        port(int):    targeted port on targeted server (default 123)
-        version(str): hexadecimal value for mode and ntp version (first 8 byte)
-        timeout(int): time in seconds to wait for response before sending next
-                        request (default 2)
+        args(Arguments): Arguments class containing all user provided target
+                         and runtime information
+        version(str):    hexadecimal ntp version
     """
 
     requests = {}
@@ -114,20 +117,20 @@ def send_mode_6_probe(host: str, port: int, version: bytes, timeout):
     mode6 = 0x06
     padding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
-    if VERBOSE:
-        print(f"Timeout: {timeout}")
+    if args.verbose:
+        print(f"Timeout: {args.timeout}")
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as serversock:
-        serversock.settimeout(timeout)
+        serversock.settimeout(args.timeout)
 
         for control_message in range(0,32):
-            item ={}
+            item = {}
             item['amplification_factor'] = ''
             item['implementation'] = ''
             item['command_id'] = control_message
             item['command_name'] = 'control'
 
-            if DEBUG:
+            if args.debug:
                 item['request'] = ''
                 item['response'] = ''
 
@@ -135,12 +138,12 @@ def send_mode_6_probe(host: str, port: int, version: bytes, timeout):
                      binascii.a2b_hex(hex(control_message)[2:].zfill(2))  + \
                      padding
 
-            if VERBOSE:
+            if args.verbose:
                 print(f"Request {request}")
 
-            serversock.sendto(request, (host, port))
+            serversock.sendto(request, (args.host, args.port))
 
-            if DEBUG:
+            if args.debug:
                 item['request'] = request.hex()
 
             item['request_length'] = len(request)
@@ -150,7 +153,7 @@ def send_mode_6_probe(host: str, port: int, version: bytes, timeout):
                 # Receive the response packet from the server
                 ntp_response, _ = serversock.recvfrom(8192)
 
-                if DEBUG:
+                if args.debug:
                     item['response'] = ntp_response.hex()
 
                 item['response_length'] = len(ntp_response)
@@ -159,7 +162,7 @@ def send_mode_6_probe(host: str, port: int, version: bytes, timeout):
                 if ntp_response:
                     amplification_factor = len(ntp_response) / len(request)
 
-                    if VERBOSE:
+                    if args.verbose:
                         print(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
 
                     item['amplification_factor'] = amplification_factor
@@ -176,28 +179,22 @@ def send_mode_6_probe(host: str, port: int, version: bytes, timeout):
     return requests
 
 
-def send_mode_7_probe(host: str, port: int, version: str, timeout: int):
+def send_mode_7_probe(args: Arguments, version: str):
     """
     Send mode 7 requests to server
 
-    The first byte consists of 2 Bit Leap Indicaor (00) 3 Bit Version
-    (000 - 100) and 3 Bit mode (011 or 111).
+    The first byte consists of 1 bit request bit(0), one bit more bit (0) and
+    3 bit version (000 - 100) followed by 3 mode bits (011 or 111).
     Leap Indicator needs to be set to either to
-     - 0 (00 no leap second)
-     - 1 (01 - add a leap second)
-     - 3 (11 - delete a leap second).
-
     Using OR on the ntp version passed to this function with the bitmask 0x07
     for mode 7 requests will generate the following values for the first byte
 
     0x0f, 0x17, 0x1f, 0x27
 
     Arguemnts:
-        host(str):    targeted ntp server (single ip or hostname)
-        port(int):    targeted port on targeted server (default 123)
-        version(str): hexadecimal value for mode and ntp version (first 8 byte)
-        timeout(int): time in seconds to wait for response before sending next
-                        request (default 2)
+        args(Arguments): Arguments class containing all user provided target
+                         and runtime information
+        version(str):    hexadecimal value for ntp version
     """
 
     requests = {}
@@ -205,11 +202,11 @@ def send_mode_7_probe(host: str, port: int, version: str, timeout: int):
     mode7 = 0x07
     padding = b'\x00\x00\x00\x00'
 
-    if VERBOSE:
-        print(f"Timeout: {timeout}")
+    if args.verbose:
+        print(f"Timeout: {args.timeout}")
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as serversock:
-        serversock.settimeout(timeout)
+        serversock.settimeout(args.timeout)
 
         for implementation in range(2,4):
             for command_value in range(0,46):
@@ -219,7 +216,7 @@ def send_mode_7_probe(host: str, port: int, version: str, timeout: int):
                 item['command_id'] = command_value
                 item['command_name'] = MODE_7_MSG_IDS[command_value]
 
-                if DEBUG:
+                if args.debug:
                     item['request'] = ''
                     item['response'] = ''
 
@@ -229,12 +226,12 @@ def send_mode_7_probe(host: str, port: int, version: str, timeout: int):
                          binascii.a2b_hex(hex(command_value)[2:].zfill(2)) + \
                          padding
 
-                if VERBOSE:
+                if args.verbose:
                     print(f"Request: {request}")
 
-                serversock.sendto(request, (host, port))
+                serversock.sendto(request, (args.host, args.port))
 
-                if DEBUG:
+                if args.debug:
                     item['request'] = request.hex()
 
                 item['request_length'] = len(request)
@@ -244,7 +241,7 @@ def send_mode_7_probe(host: str, port: int, version: str, timeout: int):
                     # Receive the response packet from the server
                     ntp_response, _ = serversock.recvfrom(8192)
 
-                    if DEBUG:
+                    if args.debug:
                         item['response'] = ntp_response.hex()
 
                     item['response_length'] = len(ntp_response)
@@ -254,7 +251,7 @@ def send_mode_7_probe(host: str, port: int, version: str, timeout: int):
                         amplification_factor = len(ntp_response) / len(request)
                         item['amplification_factor'] = amplification_factor
 
-                        if VERBOSE:
+                        if args.verbose:
                             print(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
 
                     else:
@@ -275,8 +272,6 @@ def run_test():
     Parse arguments and start sending requests accordingly
     """
     ntp_version = [ 0x08, 0x10, 0x18, 0x20 ]
-    global VERBOSE
-    global DEBUG
     data = {}
     versions = []
 
@@ -306,8 +301,13 @@ def run_test():
 
     args = parser.parse_args()
 
-    VERBOSE = args.verbose
-    DEBUG = args.debug
+    arguments = Arguments()
+
+    arguments.verbose = args.verbose
+    arguments.debug = args.debug
+    arguments.host = args.target
+    arguments.port = args.port
+    arguments.timeout = args.timeout
     data['host'] = args.target
     data['port'] = args.port
 
@@ -317,21 +317,15 @@ def run_test():
             version_data = {}
             requests = []
 
-            if VERBOSE:
+            if args.verbose:
                 print(f"Sending ntp version {index + 1} mode 6 requests to {args.target}:{args.port}")
 
-            requests.append(send_mode_6_probe(args.target,
-                                              args.port,
-                                              version,
-                                              args.timeout))
+            requests.append(send_mode_6_probe(arguments, version))
 
-            if VERBOSE:
+            if args.verbose:
                 print(f"Sending ntp version {index + 1} mode 7 requests to {args.target}:{args.port}")
 
-            requests.append(send_mode_7_probe(args.target,
-                                              args.port,
-                                              version,
-                                              args.timeout))
+            requests.append(send_mode_7_probe(arguments, version))
             version_data['version'] = index + 1
             version_data['requests'] = requests
             versions.append(version_data)
