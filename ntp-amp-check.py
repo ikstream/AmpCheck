@@ -89,6 +89,17 @@ class Arguments():
         self.debug = ''
 
 
+def convert_to_hex(data: int|str):
+    """
+    Conver input data in to a 1-byte hex digit
+
+    Arguments:
+        data(int|str): input data
+    """
+
+    return binascii.a2b_hex(hex(data)[2:].zfill(2))
+
+
 def send_mode_6_probe(args: Arguments, version: bytes):
     """
     Send mode 6 requests to server
@@ -114,7 +125,7 @@ def send_mode_6_probe(args: Arguments, version: bytes):
 
     requests = {}
     items = []
-    mode6 = 0x06
+    mode = 0x06
     padding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 
     log.info(f"Timeout: {args.timeout}")
@@ -133,11 +144,10 @@ def send_mode_6_probe(args: Arguments, version: bytes):
                 item['request'] = ''
                 item['response'] = ''
 
-            request = binascii.a2b_hex(hex(version | mode6)[2:].zfill(2)) + \
-                     binascii.a2b_hex(hex(control_message)[2:].zfill(2))  + \
-                     padding
+            request = convert_to_hex(version | mode) + \
+                      convert_to_hex(control_message) + \
+                      padding
             log.info(f"Request {request}")
-
             serversock.sendto(request, (args.host, args.port))
 
             if args.debug:
@@ -193,7 +203,7 @@ def send_mode_7_probe(args: Arguments, version: str):
 
     requests = {}
     items = []
-    mode7 = 0x07
+    mode = 0x07
     padding = b'\x00\x00\x00\x00'
 
     log.info(f"Timeout: {args.timeout}")
@@ -213,14 +223,12 @@ def send_mode_7_probe(args: Arguments, version: str):
                     item['request'] = ''
                     item['response'] = ''
 
-                request = binascii.a2b_hex(hex(version | mode7)[2:].zfill(2)) + \
+                request = convert_to_hex(version | mode) + \
                          b'\x00' + \
-                         binascii.a2b_hex(hex(implementation)[2:].zfill(2))  + \
-                         binascii.a2b_hex(hex(command_value)[2:].zfill(2)) + \
+                         convert_to_hex(implementation) + \
+                         convert_to_hex(command_value) + \
                          padding
-
                 log.info(f"Request: {request}")
-
                 serversock.sendto(request, (args.host, args.port))
 
                 if args.debug:
