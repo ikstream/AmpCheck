@@ -10,7 +10,7 @@ The script doesn't require any external libraries.
 ## How to use
 ```sh
 $ python ntp-amp-check.py -h
-usage: ntp-amp-check.py [-h] -t TARGET [-p PORT] [--verbose] [-d] [--timeout TIMEOUT]
+usage: ntp-amp-check.py [-h] -t TARGET [-p PORT] [--verbose] [-d] [--timeout TIMEOUT] [--threshold THRESHOLD]
 
 options:
   -h, --help            show this help message and exit
@@ -18,6 +18,8 @@ options:
   --verbose             Print verbose information to stdout
   -d, --debug           Print request and response bytes to output
   --timeout TIMEOUT     Time in seconds to wait for response before sending next request. Default 2
+  --threshold THRESHOLD
+                        Report only packets with amplification factorequal or greater to the provided value. Default10
 
 Required arguments:
   -t TARGET, --target TARGET

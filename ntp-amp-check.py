@@ -20,6 +20,8 @@
 Check ntp server configuration if they can be used for amplification attacks
 """
 
+# TODO: Improve documentation strings -> concise info and returns info
+
 import binascii
 import socket
 import sys
@@ -168,6 +170,10 @@ def send_mode_6_probe(args: Arguments, version: bytes):
                 # Calculate the amplification factor based on the size of the response packet
                 if ntp_response:
                     amplification_factor = len(ntp_response) / len(request)
+
+                    if amplification_factor < args.threshold:
+                        continue
+
                     log.info(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
                     item['amplification_factor'] = amplification_factor
                 else:
@@ -249,6 +255,10 @@ def send_mode_7_probe(args: Arguments, version: str):
                     # Calculate the amplification factor based on the size of the response packet
                     if ntp_response:
                         amplification_factor = len(ntp_response) / len(request)
+
+                        if amplification_factor < args.threshold:
+                            continue
+
                         item['amplification_factor'] = amplification_factor
                         log.info(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
                     else:
@@ -293,16 +303,22 @@ def run_test():
     parser.add_argument('--timeout',
                         type=int,
                         default=2,
-                        help='Time in seconds to wait for response before sending next request. Default 2')
+                        help='Time in seconds to wait for response before ' +
+                             'sending next request. Default 2')
+    parser.add_argument('--threshold',
+                        type=int,
+                        default=10,
+                        help='Report only packets with amplification factor' +
+                             'equal or greater to the provided value. Default' +
+                             '10')
 
     args = parser.parse_args()
-
     arguments = Arguments()
-
     arguments.debug = args.debug
     arguments.host = args.target
     arguments.port = args.port
     arguments.timeout = args.timeout
+    arguments.threshold = args.threshold
     data['host'] = args.target
     data['port'] = args.port
 
