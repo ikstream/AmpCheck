@@ -182,8 +182,11 @@ def send_mode_6_probe(args: Arguments, version: int):
                 else:
                     continue
 
-            except (socket.timeout, socket.error) as exc_msg:
-                log.error(f"Response error: {exc_msg} - no response from server")
+            except socket.timeout as t_exc_msg:
+                log.error(f"Response error: {t_exc_msg} - no response from "+
+                           "server")
+            except socket.error as s_exc_msg:
+                    log.error(f"Socker error: {s_exc_msg}")
 
             items.append(item)
 
@@ -269,9 +272,11 @@ def send_mode_7_probe(args: Arguments, version: int):
                         log.info(f"Amplification factor: {amplification_factor:.2f}; response: {ntp_response}")
                     else:
                         continue
-                except socket.timeout as exc_msg:
-                    log.error(f"Response error: {exc_msg} - no response from "+
+                except socket.timeout as t_exc_msg:
+                    log.error(f"Response error: {t_exc_msg} - no response from "+
                                "server")
+                except socket.error as s_exc_msg:
+                    log.error(f"Socker error: {s_exc_msg}")
 
                 items.append(item)
 
