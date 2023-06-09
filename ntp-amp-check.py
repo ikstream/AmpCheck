@@ -21,7 +21,6 @@ Check ntp server configuration if they can be used for amplification attacks
 """
 
 # TODO: Improve documentation strings -> concise info and returns info
-
 import binascii
 import socket
 import sys
@@ -180,7 +179,7 @@ def send_mode_6_probe(args: Arguments, version: bytes):
                     continue
 
             except (socket.timeout, socket.error) as exc_msg:
-                log.error(f"Response error: {exc_msg}")
+                log.error(f"Response error: {exc_msg} - no response from server")
 
             items.append(item)
 
@@ -264,7 +263,8 @@ def send_mode_7_probe(args: Arguments, version: str):
                     else:
                         continue
                 except socket.timeout as exc_msg:
-                    log.error(f"Response error: {exc_msg}")
+                    log.error(f"Response error: {exc_msg} - no response from "+
+                               "server")
 
                 items.append(item)
 
@@ -310,7 +310,7 @@ def run_test():
                         default=10,
                         help='Report only packets with amplification factor' +
                              'equal or greater to the provided value. Default' +
-                             '10')
+                             ' 10')
 
     args = parser.parse_args()
     arguments = Arguments()
