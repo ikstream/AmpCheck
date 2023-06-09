@@ -55,13 +55,13 @@ from [1]
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
-LI: leap indicator: 0
-VN: version number: 1...4
-Mode: 6
-R: response bit (0 - request; 1 - response)
-E: error bit (0 - normal response; 1 - error response)
-M: more bit
-opcode: command ID: 0...31
+- LI: leap indicator: 0..3 (0 - no leap second; 1 - add a leap second; 3 - delete a leap second)
+- VN: version number: 1..4
+- Mode: 6
+- R: response bit (0 - request; 1 - response)
+- E: error bit (0 - normal response; 1 - error response)
+- M: more bit
+- opcode: command ID: 0..31
 
 
 NTP Mode 7 Message Format
@@ -76,20 +76,21 @@ from [2]
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
-R: response bit
-M: more bit
-VN: version number: 1...4
-Mode: 7
-A: authenticated bit: 0
-Sequence: 0
-Implementation: 2...3
-Req Code: specifies the operation: 0...45
+- R: response bit 0..1 (0 - request; 1 - response)
+- M: more bit 0..1 (0 - more; 1 - last bit)
+- VN: version number: 1...4
+- Mode: 7
+- A: authenticated bit: 0..1 (0 - use no authentication; 1 - use authentication)
+- Sequence: 0
+- Implementation: 2...3
+- Req Code: specifies the operation: 0...45 (valid commands)
 
 rest: 0
 
 ## Resources
 
-[1](https://datatracker.ietf.org/doc/html/rfc9327#section-2
-)
-[2](https://blog.qualys.com/vulnerabilities-threat-research/2014/01/21/how-qualysguard-detects-vulnerability-to-ntp-amplification-attacks
+[[1]: rfc9327](https://datatracker.ietf.org/doc/html/rfc9327#section-2)
+
+[[2]: how qualysguard detects vulnerability to ntp amplification attacks](
+https://blog.qualys.com/vulnerabilities-threat-research/2014/01/21/how-qualysguard-detects-vulnerability-to-ntp-amplification-attacks
 )

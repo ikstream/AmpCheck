@@ -20,7 +20,6 @@
 Check ntp server configuration if they can be used for amplification attacks
 """
 
-# TODO: Improve documentation strings -> concise info and returns info
 import binascii
 import socket
 import sys
