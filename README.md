@@ -30,15 +30,26 @@ The `--verbose` flag adds additional output during the execution and the
 `--debug` flag adds the hex values of the request and response packages.
 
 ### Examples
-To run against a single target with ntp listening on port 123 you can either provide an ip adress or a hostname
+To run against a single target with NTP listening on port 123 you can either provide an ip adress or a hostname
 
 ```
 python ntp-amp-check.py -t ntp.example.com
 ```
 
-For a ntp server listening on port 10123, the port has to be provided as well
+For a NTP server listening on port 10123, the port has to be provided as well
 ```
 python ntp-amp-check.py -t ntp.example.com -p 10123
+```
+
+To only show request with an amplification factor of 50 or greater
+```
+python ntp-amp-check.py -t localhost --threshold 50
+```
+
+To get a cleaner command line output combine this script with the json.tool
+module
+```
+python ntp-amp-check.py -t localhost --threshold 50 | python -m json.tool
 ```
 
 ## Packet structure
