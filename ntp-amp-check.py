@@ -96,32 +96,37 @@ def convert_to_hex(data: int|str):
 
     Arguments:
         data(int|str): input data
+    Returns:
+        single byte hex interpretation of input
     """
 
     return binascii.a2b_hex(hex(data)[2:].zfill(2))
 
 
-def send_mode_6_probe(args: Arguments, version: bytes):
+def send_mode_6_probe(args: Arguments, version: int):
     """
     Send mode 6 requests to server
 
-    The first byte consists of 2 Bit Leap Indicaor (00) 3 Bit Version
-    (000 - 100) and 3 Bit mode (011 or 111).
+    The first byte consists of 2 bit leap indicaor (00) 3 bit version
+    (000 - 100) and 3 bit mode (011 or 111).
     Leap Indicator needs to be set to either to
      - 0 (00 no leap second)
      - 1 (01 - add a leap second)
      - 3 (11 - delete a leap second).
 
-    Here it is set to 0.
-    Using OR on the ntp version passed to this function with the bitmask 0x06
-    for mode 6 requests will generate the following values for the first byte
+    It is set to 0.
+    Using bitwise `or` on the ntp version passed to this function with the
+    bitmask 0x06 for mode 6 requests will generate the following values for
+    the first byte
 
     0x0e, 0x16, 0x1e, 0x26
 
     Arguemnts:
         args(Arguments): Arguments class containing all user provided target
                          and runtime information
-        version(str):    hexadecimal ntp version
+        version(str):    bit shifted ntp version
+    Returns:
+        diticnary with an array of selected requests
     """
 
     requests = {}
@@ -131,8 +136,8 @@ def send_mode_6_probe(args: Arguments, version: bytes):
 
     log.info(f"Timeout: {args.timeout}")
 
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as serversock:
-        serversock.settimeout(args.timeout)
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as testing_sock:
+        testing_sock.settimeout(args.timeout)
 
         for control_message in range(0,32):
             item = {}
@@ -149,7 +154,7 @@ def send_mode_6_probe(args: Arguments, version: bytes):
                       convert_to_hex(control_message) + \
                       padding
             log.info(f"Request {request}")
-            serversock.sendto(request, (args.host, args.port))
+            testing_sock.sendto(request, (args.host, args.port))
 
             if args.debug:
                 item['request'] = request.hex()
@@ -159,7 +164,7 @@ def send_mode_6_probe(args: Arguments, version: bytes):
 
             try:
                 # Receive the response packet from the server
-                ntp_response, _ = serversock.recvfrom(8192)
+                ntp_response, _ = testing_sock.recvfrom(8192)
 
                 if args.debug:
                     item['response'] = ntp_response.hex()
@@ -188,22 +193,25 @@ def send_mode_6_probe(args: Arguments, version: bytes):
     return requests
 
 
-def send_mode_7_probe(args: Arguments, version: str):
+def send_mode_7_probe(args: Arguments, version: int):
     """
     Send mode 7 requests to server
 
     The first byte consists of 1 bit request bit(0), one bit more bit (0) and
     3 bit version (000 - 100) followed by 3 mode bits (011 or 111).
     Leap Indicator needs to be set to either to
-    Using OR on the ntp version passed to this function with the bitmask 0x07
-    for mode 7 requests will generate the following values for the first byte
+    Using a bitwise `or` on the ntp version passed to this function with the
+    bitmask 0x07 for mode 7 requests will generate the following values for the
+    first byte:
 
     0x0f, 0x17, 0x1f, 0x27
 
     Arguemnts:
         args(Arguments): Arguments class containing all user provided target
                          and runtime information
-        version(str):    hexadecimal value for ntp version
+        version(int):    bit shifted ntp version
+    Returns:
+        diticnary with an array of selected requests
     """
 
     requests = {}
@@ -213,8 +221,8 @@ def send_mode_7_probe(args: Arguments, version: str):
 
     log.info(f"Timeout: {args.timeout}")
 
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as serversock:
-        serversock.settimeout(args.timeout)
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as testing_sock:
+        testing_sock.settimeout(args.timeout)
 
         for implementation in range(2,4):
             for command_value in range(0,46):
@@ -234,7 +242,7 @@ def send_mode_7_probe(args: Arguments, version: str):
                          convert_to_hex(command_value) + \
                          padding
                 log.info(f"Request: {request}")
-                serversock.sendto(request, (args.host, args.port))
+                testing_sock.sendto(request, (args.host, args.port))
 
                 if args.debug:
                     item['request'] = request.hex()
@@ -244,7 +252,7 @@ def send_mode_7_probe(args: Arguments, version: str):
 
                 try:
                     # Receive the response packet from the server
-                    ntp_response, _ = serversock.recvfrom(8192)
+                    ntp_response, _ = testing_sock.recvfrom(8192)
 
                     if args.debug:
                         item['response'] = ntp_response.hex()
@@ -277,7 +285,6 @@ def run_test():
     """
     Parse arguments and start sending requests accordingly
     """
-    ntp_version = [ 0x08, 0x10, 0x18, 0x20 ]
     data = {}
     versions = []
 
@@ -327,15 +334,15 @@ def run_test():
 
     try:
 
-        for index, version in enumerate(ntp_version):
+        for version in range(1,5):
             version_data = {}
             requests = []
 
-            log.info(f"Sending ntp version {index + 1} mode 6 requests to {args.target}:{args.port}")
-            requests.append(send_mode_6_probe(arguments, version))
-            log.info(f"Sending ntp version {index + 1} mode 7 requests to {args.target}:{args.port}")
-            requests.append(send_mode_7_probe(arguments, version))
-            version_data['version'] = index + 1
+            log.info(f"Sending ntp version {version} mode 6 requests to {args.target}:{args.port}")
+            requests.append(send_mode_6_probe(arguments, version<<3))
+            log.info(f"Sending ntp version {version} mode 7 requests to {args.target}:{args.port}")
+            requests.append(send_mode_7_probe(arguments, version<<3))
+            version_data['version'] = version
             version_data['requests'] = requests
             versions.append(version_data)
 
