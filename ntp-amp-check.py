@@ -102,6 +102,39 @@ def convert_to_hex(data: int|str):
     return binascii.a2b_hex(hex(data)[2:].zfill(2))
 
 
+def send_client_request(args: Arguments, version: int):
+    # TODO: check if supports version, otherwise skip rest of test for this
+    #       version
+    # TODO: change padding in other functions like here
+    key = f"response_on_client_request_version_{version}"
+    verification = dict(key = 'false')
+    initial_sync_client = 195
+    padding = b'\x00' * 55
+    ntp_response = ''
+
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as testing_sock:
+        testing_sock.settimeout(args.timeout)
+        request = convert_to_hex(initial_sync_client | version) + padding
+        print(request)
+        testing_sock.sendto(request, (args.host, args.port))
+
+        try:
+            ntp_response, _ = testing_sock.recvfrom(8192)
+
+            if ntp_response:
+                verification[key] = 'true'
+                print(f"response: {ntp_response}")
+
+        except socket.timeout as t_exc_msg:
+            log.error(f"Response error: {t_exc_msg} - no response from "+
+                       "server")
+        except socket.error as s_exc_msg:
+            log.error(f"Socker error: {s_exc_msg}")
+            sys.exit("Socker error: {s_exc_msg}")
+
+    return verification
+
+
 def send_mode_6_probe(args: Arguments, version: int):
     """
     Send mode 6 requests to server
@@ -341,7 +374,7 @@ def run_test():
         for version in range(1,5):
             version_data = {}
             requests = []
-
+            send_client_request(arguments, version<<3)
             log.info(f"Sending ntp version {version} mode 6 requests to {args.target}:{args.port}")
             requests.append(send_mode_6_probe(arguments, version<<3))
             log.info(f"Sending ntp version {version} mode 7 requests to {args.target}:{args.port}")
