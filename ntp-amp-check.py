@@ -173,7 +173,7 @@ def send_mode_6_probe(args: Arguments, version: int):
 
         for control_message in range(0,32):
             item = {}
-            item['amplification_factor'] = ''
+            item['amplification_factor'] = 0
             item['implementation'] = ''
             item['command_id'] = control_message
             item['command_name'] = 'control'
@@ -262,7 +262,7 @@ def send_mode_7_probe(args: Arguments, version: int):
         for implementation in range(2,4):
             for command_value in range(0,46):
                 item ={}
-                item['amplification_factor'] = ''
+                item['amplification_factor'] = 0
                 item['implementation'] = implementation
                 item['command_id'] = command_value
                 item['command_name'] = MODE_7_MSG_IDS[command_value]
@@ -374,17 +374,20 @@ def run_test():
         for version in range(1,5):
             version_data = {}
             requests = []
-            send_client_request(arguments, version<<3)
-            log.info(f"Sending ntp version {version} mode 6 requests to {args.target}:{args.port}")
-            requests.append(send_mode_6_probe(arguments, version<<3))
-            log.info(f"Sending ntp version {version} mode 7 requests to {args.target}:{args.port}")
-            requests.append(send_mode_7_probe(arguments, version<<3))
-            version_data['version'] = version
-            version_data['requests'] = requests
-            versions.append(version_data)
+            server_response = send_client_request(arguments, version<<3)
+            if server_response[version] == 'true'
+                log.info(f"Sending ntp version {version} mode 6 requests to {args.target}:{args.port}")
+                requests.append(send_mode_6_probe(arguments, version<<3))
+                log.info(f"Sending ntp version {version} mode 7 requests to {args.target}:{args.port}")
+                requests.append(send_mode_7_probe(arguments, version<<3))
+                version_data['version'] = version
+                version_data['requests'] = requests
+                versions.append(version_data)
 
         data['ntp_version'] = versions
-        print(json.dumps(data))
+
+        if versions:
+            print(json.dumps(data))
 
     except KeyboardInterrupt:
         sys.exit("Aborted by user")
