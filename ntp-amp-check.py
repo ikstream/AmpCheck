@@ -107,7 +107,7 @@ def send_client_request(args: Arguments, version: int):
     #       version
     # TODO: change padding in other functions like here
     key = f"response_on_client_request_version_{version}"
-    verification = dict(key = 'false')
+    verification = False
     initial_sync_client = 195
     padding = b'\x00' * 55
     ntp_response = ''
@@ -115,15 +115,20 @@ def send_client_request(args: Arguments, version: int):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as testing_sock:
         testing_sock.settimeout(args.timeout)
         request = convert_to_hex(initial_sync_client | version) + padding
-        print(request)
+        
+        if args.debug:
+            log.info(request)
+
         testing_sock.sendto(request, (args.host, args.port))
 
         try:
             ntp_response, _ = testing_sock.recvfrom(8192)
 
             if ntp_response:
-                verification[key] = 'true'
-                print(f"response: {ntp_response}")
+                verification = True
+
+                if args.debug:
+                    log.info(f"response: {ntp_response}")
 
         except socket.timeout as t_exc_msg:
             log.error(f"Response error: {t_exc_msg} - no response from "+
@@ -192,7 +197,7 @@ def send_mode_6_probe(args: Arguments, version: int):
                 item['request'] = request.hex()
 
             item['request_length'] = len(request)
-            item['response_length'] = ''
+            item['response_length'] = 0
 
             try:
                 # Receive the response packet from the server
@@ -221,7 +226,8 @@ def send_mode_6_probe(args: Arguments, version: int):
             except socket.error as s_exc_msg:
                     log.error(f"Socker error: {s_exc_msg}")
 
-            items.append(item)
+            if item['response_length'] > 0:
+                items.append(item)
 
     requests['mode 6'] = items
 
@@ -283,7 +289,7 @@ def send_mode_7_probe(args: Arguments, version: int):
                     item['request'] = request.hex()
 
                 item['request_length'] = len(request)
-                item['response_length'] = ''
+                item['response_length'] = 0
 
                 try:
                     # Receive the response packet from the server
@@ -311,7 +317,8 @@ def send_mode_7_probe(args: Arguments, version: int):
                 except socket.error as s_exc_msg:
                     log.error(f"Socker error: {s_exc_msg}")
 
-                items.append(item)
+                if item['response_length'] > 0:
+                    items.append(item)
 
     requests['mode 7'] = items
 
@@ -375,7 +382,7 @@ def run_test():
             version_data = {}
             requests = []
             server_response = send_client_request(arguments, version<<3)
-            if server_response[version] == 'true'
+            if server_response:
                 log.info(f"Sending ntp version {version} mode 6 requests to {args.target}:{args.port}")
                 requests.append(send_mode_6_probe(arguments, version<<3))
                 log.info(f"Sending ntp version {version} mode 7 requests to {args.target}:{args.port}")
