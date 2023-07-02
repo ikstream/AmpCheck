@@ -103,10 +103,17 @@ def convert_to_hex(data: int|str):
 
 
 def send_client_request(args: Arguments, version: int):
-    # TODO: check if supports version, otherwise skip rest of test for this
-    #       version
-    # TODO: change padding in other functions like here
-    key = f"response_on_client_request_version_{version}"
+    """
+    Send a client request to the provided server. This checks if a server does
+    process the provided version at all
+
+    Arguemnts:
+        args(Arguments): Arguments class containing all user provided target
+                         and runtime information
+        version(str):    bit shifted ntp version
+    Returns:
+        True if a server responds to the provided version, False if not
+    """
     verification = False
     initial_sync_client = 195
     padding = b'\x00' * 55
@@ -115,7 +122,7 @@ def send_client_request(args: Arguments, version: int):
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as testing_sock:
         testing_sock.settimeout(args.timeout)
         request = convert_to_hex(initial_sync_client | version) + padding
-        
+
         if args.debug:
             log.info(request)
 
@@ -126,9 +133,12 @@ def send_client_request(args: Arguments, version: int):
 
             if ntp_response:
                 verification = True
+                print(f"Received client response: NTP version {version>>3}")
 
                 if args.debug:
                     log.info(f"response: {ntp_response}")
+            else:
+                log.warn(f"No response for client request: NTP version {version>>3}")
 
         except socket.timeout as t_exc_msg:
             log.error(f"Response error: {t_exc_msg} - no response from "+
@@ -163,13 +173,13 @@ def send_mode_6_probe(args: Arguments, version: int):
                          and runtime information
         version(str):    bit shifted ntp version
     Returns:
-        diticnary with an array of selected requests
+        ditionary with an array of selected requests
     """
 
     requests = {}
     items = []
     mode = 0x06
-    padding = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+    padding = b'\x00' * 10
 
     log.info(f"Timeout: {args.timeout}")
 
@@ -258,7 +268,7 @@ def send_mode_7_probe(args: Arguments, version: int):
     requests = {}
     items = []
     mode = 0x07
-    padding = b'\x00\x00\x00\x00'
+    padding = b'\x00' * 4
 
     log.info(f"Timeout: {args.timeout}")
 
@@ -394,7 +404,7 @@ def run_test():
         data['ntp_version'] = versions
 
         if versions:
-            print(json.dumps(data))
+            print(json.dumps(data, indent = 2))
 
     except KeyboardInterrupt:
         sys.exit("Aborted by user")
