@@ -1,4 +1,4 @@
-# ntp-amp-check - NTP amplification checker
+# amp-check - NTP amplification checker
 This script checks multiple NTP mode 6 and mode 7 requests for their
 amplification potential.
 Therefore it tries NTP Version 1 to 4 for both mode 6 and 7.
@@ -7,12 +7,10 @@ provide the best results during tests.
 
 The script doesn't require any external libraries.
 
-[toc]
-
 ## How to use
 ```sh
-$ python ntp-amp-check.py -h
-usage: ntp-amp-check.py [-h] -t TARGET [-p PORT] [--verbose] [-d] [--timeout TIMEOUT] [--threshold THRESHOLD]
+$ python amp_check.py -h
+usage: amp_check.py [-h] -t TARGET [-p PORT] [--verbose] [-d] [--timeout TIMEOUT] [--threshold THRESHOLD]
 
 options:
   -h, --help            show this help message and exit
@@ -35,17 +33,17 @@ The `--verbose` flag adds additional output during the execution and the
 To run against a single target with NTP listening on port 123 you can either provide an ip adress or a hostname
 
 ```
-python ntp-amp-check.py -t ntp.example.com
+python amp_check.py -t ntp.example.com
 ```
 
 For a NTP server listening on port 10123, the port has to be provided as well
 ```
-python ntp-amp-check.py -t ntp.example.com -p 10123
+python amp_check.py -t ntp.example.com -p 10123
 ```
 
 To only show request with an amplification factor of 50 or greater
 ```
-python ntp-amp-check.py -t localhost --threshold 50
+python amp_check.py -t localhost --threshold 50
 ```
 
 ## Packet structure
