@@ -7,6 +7,8 @@ provide the best results during tests.
 
 The script doesn't require any external libraries.
 
+[toc]
+
 ## How to use
 ```sh
 $ python ntp-amp-check.py -h
@@ -44,12 +46,6 @@ python ntp-amp-check.py -t ntp.example.com -p 10123
 To only show request with an amplification factor of 50 or greater
 ```
 python ntp-amp-check.py -t localhost --threshold 50
-```
-
-To get a cleaner command line output combine this script with the json.tool
-module
-```
-python ntp-amp-check.py -t localhost --threshold 50 | python -m json.tool
 ```
 
 ## Packet structure
